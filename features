@@ -22,13 +22,13 @@ MODEL 6 (ATTINY861A), VERSION 2, REVISION 0
 	8		pb5						oc1d = pwm 2		output 2
 	9		pb6						X
 	10		pb7			reset		reset				isp reset pin 5
-	11		pa7						pcint7				input 1c
-	12		pa6						pcint6				input 1b
-	13		pa5						pcint5				input 1a
+	11		pa7						pcint7				input red red
+	12		pa6						pcint6				input red blue
+	13		pa5						pcint5				input red yellow
 	14		pa4						X
-	15		AVcc
-	16		AGND
+	15		AVcc					X
+	16		AGND					X
 	17		pa3						X
-	18		pa2						pcint2				input 2c
-	19		pa1						pcint1				input 2b
-	20		pa0						pcint0				input 2a
+	18		pa2						pcint2				input green red
+	19		pa1						pcint1				input green blue
+	20		pa0						pcint0				input green yellow
