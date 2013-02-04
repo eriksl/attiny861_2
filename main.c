@@ -9,12 +9,12 @@
 
 enum
 {
-	WATCHDOG_PRESCALER = WATCHDOG_PRESCALER_2K,
+	WATCHDOG_PRESCALER	= WATCHDOG_PRESCALER_256K,
 };
 
 typedef enum
 {
-	pwm_mode_none				= 0,
+	pwm_mode_fade_none			= 0,
 	pwm_mode_fade_in			= 1,
 	pwm_mode_fade_out			= 2,
 	pwm_mode_fade_in_out_cont	= 3,
@@ -23,7 +23,7 @@ typedef enum
 
 typedef struct
 {
-	uint8_t		duty;
+	uint16_t	duty;
 	pwm_mode_t	pwm_mode:8;
 } pwm_meta_t;
 
@@ -31,45 +31,34 @@ static	const	ioport_t		*ioport;
 static			pwm_meta_t		pwm_meta[PWM_PORTS];
 static			pwm_meta_t		*pwm_slot;
 
-static	uint8_t		watchdog_counter;
-static	uint8_t		slot, dirty;
-static	uint16_t	duty16, diff16;
+static	uint8_t		slot, keys_down;
+static	uint16_t	duty;
 
 ISR(WDT_vect)
 {
-	dirty = 0;
-
-	if(watchdog_counter < 255)
-		watchdog_counter++;
-
-	pwm_slot = &pwm_meta[0];
-
-	for(slot = 0; slot < PWM_PORTS; slot++)
+	for(slot = 0, pwm_slot = &pwm_meta[0]; slot < PWM_PORTS; slot++, pwm_slot++)
 	{
-		duty16	= pwm_timer1_get_pwm(slot);
-		diff16	= duty16 / 8;
-
-		if(diff16 < 8)
-			diff16 = 8;
+		duty = pwm_timer1_get_pwm(slot);
 
 		switch(pwm_slot->pwm_mode)
 		{
 			case(pwm_mode_fade_in):
 			case(pwm_mode_fade_in_out_cont):
 			{
-				if(duty16 < (1020 - diff16))
-					duty16 += diff16;
+				if(duty < 0x3ff)
+					duty++;
 				else
 				{
-					duty16 = 1020;
+					duty = 0x3ff;
 
 					if(pwm_slot->pwm_mode == pwm_mode_fade_in)
-						pwm_slot->pwm_mode = pwm_mode_none;
+						pwm_slot->pwm_mode = pwm_mode_fade_none;
 					else
 						pwm_slot->pwm_mode = pwm_mode_fade_out_in_cont;
 				}
 
-				pwm_timer1_set_pwm(slot, duty16);
+				pwm_slot->duty = duty;
+				pwm_timer1_set_pwm(slot, duty);
 
 				break;
 			}
@@ -77,25 +66,24 @@ ISR(WDT_vect)
 			case(pwm_mode_fade_out):
 			case(pwm_mode_fade_out_in_cont):
 			{
-				if(duty16 > diff16)
-					duty16 -= diff16;
+				if(duty > 0)
+					duty--;
 				else
 				{
-					duty16 = 0;
+					duty = 0;
 
 					if(pwm_slot->pwm_mode == pwm_mode_fade_out)
-						pwm_slot->pwm_mode = pwm_mode_none;
+						pwm_slot->pwm_mode = pwm_mode_fade_none;
 					else
 						pwm_slot->pwm_mode = pwm_mode_fade_in_out_cont;
 				}
 
-				pwm_timer1_set_pwm(slot, duty16);
+				pwm_slot->duty = duty;
+				pwm_timer1_set_pwm(slot, duty);
 
 				break;
 			}
 		}
-
-		pwm_slot++;
 	}
 
 	watchdog_setup(WATCHDOG_PRESCALER);
@@ -103,6 +91,90 @@ ISR(WDT_vect)
 
 ISR(PCINT_vect)
 {
+	uint8_t new_keys_down = 0;
+
+	for(slot = 0, ioport = &input_ports[0]; slot < INPUT_PORTS; slot++, ioport++)
+		if(!(*ioport->pin & _BV(ioport->bit)))
+			new_keys_down++;
+
+	if(new_keys_down < keys_down)
+	{
+		keys_down = new_keys_down;
+		return;
+	}
+
+	keys_down = new_keys_down;
+
+	ioport = &input_ports[0];
+
+	for(slot = 0;  slot < PWM_PORTS; slot++, ioport += 3)
+	{
+		if(!(*ioport[0].pin & _BV(ioport[0].bit)) && !(*ioport[1].pin & _BV(ioport[1].bit)))
+		{
+			pwm_meta[slot].pwm_mode = pwm_mode_fade_out;
+			continue;
+		}
+
+		if(!(*ioport[0].pin & _BV(ioport[0].bit)) && !(*ioport[2].pin & _BV(ioport[2].bit)))
+		{
+			pwm_meta[slot].duty		= 0;
+			pwm_timer1_set_pwm(slot, 0);
+			pwm_meta[slot].pwm_mode = pwm_mode_fade_in;
+			continue;
+		}
+
+		if(!(*ioport[1].pin & _BV(ioport[1].bit)) && !(*ioport[2].pin & _BV(ioport[2].bit)))
+		{
+			pwm_meta[slot].pwm_mode = pwm_mode_fade_in_out_cont;
+			continue;
+		}
+
+		if(!(*ioport[0].pin & _BV(ioport[0].bit)))
+		{
+			pwm_meta[slot].pwm_mode = pwm_mode_fade_none;
+
+			duty = pwm_timer1_get_pwm(slot);
+
+			if(duty > 0)
+			{
+				pwm_meta[slot].duty = duty;
+				pwm_timer1_set_pwm(slot, 0);
+			}
+			else
+			{
+				pwm_timer1_set_pwm(slot, pwm_meta[slot].duty);
+			}
+		}
+
+		if(!(*ioport[1].pin & _BV(ioport[1].bit)))
+		{
+			pwm_meta[slot].pwm_mode = pwm_mode_fade_none;
+
+			duty = pwm_meta[slot].duty >> 1;
+
+			if(duty == 0)
+				duty = 1;
+
+			pwm_meta[slot].duty = duty;
+			pwm_timer1_set_pwm(slot, duty);
+		}
+
+		if(!(*ioport[2].pin & _BV(ioport[2].bit)))
+		{
+			pwm_meta[slot].pwm_mode = pwm_mode_fade_none;
+
+			duty = (pwm_meta[slot].duty << 1);
+
+			if(duty == 0)
+				duty = 1;
+
+			if(duty > 0x3ff)
+				duty = 0x3ff;
+
+			pwm_meta[slot].duty = duty;
+			pwm_timer1_set_pwm(slot, duty);
+		}
+	}
 }
 
 int main(void)
@@ -138,33 +210,27 @@ int main(void)
 	{
 		*pwm_ports[slot].ddr 		|= _BV(pwm_ports[slot].bit);
 		*pwm_ports[slot].port		&= ~_BV(pwm_ports[slot].bit);
-		pwm_meta[slot].pwm_mode		= pwm_mode_none;
+		pwm_meta[slot].pwm_mode		= pwm_mode_fade_none;
+		pwm_meta[slot].duty			= 0x3ff;
 	}
 
 	// 1 mhz / 4 / 1024 = 244 Hz
 	pwm_timer1_init(PWM_TIMER1_PRESCALER_4);
 	pwm_timer1_set_max(0x3ff);
+	pwm_timer1_set_pwm(0, 0);
+	pwm_timer1_set_pwm(1, 0);
 	pwm_timer1_start();
 
+	keys_down = 0;
 	set_sleep_mode(SLEEP_MODE_IDLE);
 	sei();
 
 	watchdog_setup(WATCHDOG_PRESCALER);
 	watchdog_start();
 
-	*pwm_ports[1].port |= _BV(pwm_ports[1].bit);
-
 	for(;;)
 	{
-		uint8_t divisor;
-
-		for(divisor = 0; divisor < 8; divisor++)
-		{
-			sleep_mode();
-		}
-
-		*pwm_ports[0].port ^= _BV(pwm_ports[0].bit);
-		*pwm_ports[1].port ^= _BV(pwm_ports[1].bit);
+		sleep_mode();
 	}
 
 	return(0);

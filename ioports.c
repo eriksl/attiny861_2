@@ -9,12 +9,12 @@ const adcport_t adc_ports[ADC_PORTS] =
 
 const ioport_t input_ports[INPUT_PORTS] =
 {
-	{ &PORTA, &PINA, &DDRA, 7, &PCMSK0, PCINT7, PCIE1 },	// a7
-	{ &PORTA, &PINA, &DDRA, 6, &PCMSK0, PCINT6, PCIE1 },	// a6
-	{ &PORTA, &PINA, &DDRA, 5, &PCMSK0, PCINT5, PCIE1 },	// a5
 	{ &PORTA, &PINA, &DDRA, 2, &PCMSK0, PCINT2, PCIE1 },	// a2
 	{ &PORTA, &PINA, &DDRA, 1, &PCMSK0, PCINT1, PCIE1 },	// a1
 	{ &PORTA, &PINA, &DDRA, 0, &PCMSK0, PCINT0, PCIE1 },	// a0
+	{ &PORTA, &PINA, &DDRA, 7, &PCMSK0, PCINT7, PCIE1 },	// a7
+	{ &PORTA, &PINA, &DDRA, 6, &PCMSK0, PCINT6, PCIE1 },	// a6
+	{ &PORTA, &PINA, &DDRA, 5, &PCMSK0, PCINT5, PCIE1 },	// a5
 };
 
 const ioport_t output_ports[OUTPUT_PORTS] =

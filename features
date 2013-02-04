@@ -15,20 +15,20 @@ MODEL 6 (ATTINY861A), VERSION 2, REVISION 0
 	1		pb0			mosi 		mosi				isp mosi  pin 4
 	2		pb1			miso 		miso				isp miso  pin 1
 	3		pb2			sck 		sck					isp sck   pin 3
-	4		pb3						oc1b = pwm 1		output 1
+	4		pb3						oc1b = pwm 1		output 1				pwm 0
 	5		Vcc			Vcc			Vcc					iso Vcc   pin 2
 	6		GND			GND			gnd					isp gnd   pin 6
 	7		pb4						X
-	8		pb5						oc1d = pwm 2		output 2
+	8		pb5						oc1d = pwm 2		output 2				pwm 1
 	9		pb6						X
 	10		pb7			reset		reset				isp reset pin 5
-	11		pa7						pcint7				input red red
-	12		pa6						pcint6				input red blue
-	13		pa5						pcint5				input red yellow
+	11		pa7						pcint7				input red red			input 3
+	12		pa6						pcint6				input red blue			input 4
+	13		pa5						pcint5				input red yellow		input 5
 	14		pa4						X
 	15		AVcc					X
 	16		AGND					X
 	17		pa3						X
-	18		pa2						pcint2				input green red
-	19		pa1						pcint1				input green blue
-	20		pa0						pcint0				input green yellow
+	18		pa2						pcint2				input green red			input 0
+	19		pa1						pcint1				input green blue		input 1
+	20		pa0						pcint0				input green yellow		input 2
