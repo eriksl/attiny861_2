@@ -199,7 +199,7 @@ int main(void)
 				(0 << 6)		|	// reserved
 				(0 << 5)		|
 				(0 << 4)		|
-				(0 << PRTIM1)	|	// timer1
+				(1 << PRTIM1)	|	// timer1
 				(1 << PRTIM0)	|	// timer0
 				(1 << PRUSI)	|	// usi
 				(1 << PRADC);		// adc / analog comperator
@@ -233,8 +233,10 @@ int main(void)
 		pwm_timer1_set_pwm(slot, 0);
 	}
 
-	// 1 mhz / 4 / 1024 = 244 Hz
-	pwm_timer1_init(PWM_TIMER1_PRESCALER_4);
+	CLKPR = _BV(CLKPCE);
+	CLKPR = _BV(CLKPS2) | _BV(CLKPS1);	// prescale cpu 8 MHz / 64 = 125 kHz = 0.1 mA
+
+	pwm_timer1_init(PWM_TIMER1_PRESCALER_2, 1); // use PLL / fast peripheral clock, 32 MHz / 2 / 1024 = 16 kHz = 3.0 mA
 	pwm_timer1_set_max(0x3ff);
 	pwm_timer1_set_pwm(0, 0);
 	pwm_timer1_set_pwm(1, 0);

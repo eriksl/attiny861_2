@@ -179,6 +179,9 @@ uint16_t pwm_timer1_get_pwm(uint8_t port)
 void pwm_timer1_start(void)
 {
 	pwm_timer1_stop();
+
+	PRR &= ~_BV(PRTIM1);
+
 	pwm_timer1_reset_counter();
 
 	TCCR1B =	(0		<< PWM1X)	|	// enable pwm inversion mode
@@ -201,6 +204,8 @@ void pwm_timer1_stop(void)
 				(0		<< CS12)	|	// clock select bit 2
 				(0		<< CS11)	|	// clock select bit 1
 				(0		<< CS10);		// clock select bit 0
+
+	PRR |= _BV(PRTIM1);
 }
 
 uint8_t pwm_timer1_status(void)
