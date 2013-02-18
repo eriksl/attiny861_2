@@ -79,9 +79,6 @@ ISR(WDT_vect)
 						pwmmeta->pwm_mode = pwm_mode_fade_out_in_cont;
 				}
 
-				pwm_slot->duty = duty;
-				pwm_timer1_set_pwm(slot, duty);
-
 				break;
 			}
 
@@ -105,6 +102,8 @@ ISR(WDT_vect)
 				break;
 			}
 		}
+
+		set_pwm(slot, duty);
 	}
 
 	watchdog_setup(WATCHDOG_PRESCALER);
@@ -160,6 +159,8 @@ ISR(PCINT_vect)
 				pwmmeta->saved_duty = pwmmeta->duty;
 				duty = pwmmeta->duty = 0;	// on
 			}
+
+			set_pwm(slot, duty);
 		}
 
 		if(!(*ioport[1].pin & _BV(ioport[1].bit)))
@@ -171,8 +172,7 @@ ISR(PCINT_vect)
 			if(duty == 0)
 				duty = 1;
 
-			pwm_meta[slot].duty = duty;
-			pwm_timer1_set_pwm(slot, duty);
+			set_pwm(slot, duty);
 		}
 
 		if(!(*ioport[2].pin & _BV(ioport[2].bit)))
@@ -187,8 +187,7 @@ ISR(PCINT_vect)
 			if(duty > 0x3ff)
 				duty = 0x3ff;
 
-			pwm_meta[slot].duty = duty;
-			pwm_timer1_set_pwm(slot, duty);
+			set_pwm(slot, duty);
 		}
 	}
 }
@@ -240,8 +239,6 @@ int main(void)
 
 	pwm_timer1_init(PWM_TIMER1_PRESCALER_2, 1); // use PLL / fast peripheral clock, 32 MHz / 2 / 1024 = 16 kHz = 3.0 mA
 	pwm_timer1_set_max(0x3ff);
-	pwm_timer1_set_pwm(0, 0);
-	pwm_timer1_set_pwm(1, 0);
 	pwm_timer1_start();
 
 	keys_down = 0;
