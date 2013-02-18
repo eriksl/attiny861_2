@@ -24,6 +24,7 @@ typedef enum
 typedef struct
 {
 	uint16_t	duty;
+	uint16_t	saved_duty;
 	pwm_mode_t	pwm_mode:8;
 } pwm_meta_t;
 
@@ -34,11 +35,30 @@ static			pwm_meta_t		*pwm_slot;
 static	uint8_t		slot, keys_down;
 static	uint16_t	duty;
 
+static void set_pwm(uint8_t slot, uint16_t duty)
+{
+	pwm_meta[slot].duty = duty;
+	pwm_timer1_set_pwm(slot, duty);
+
+#if 0	// 0.3 mA
+	if((pwm_meta[0].duty == 0) && (pwm_meta[1].duty == 0))
+	{
+		if(!(PRR & _BV(PRTIM1)))
+			pwm_timer1_stop();
+	}
+	else
+	{
+		if(PRR & _BV(PRTIM1))
+			pwm_timer1_start();
+	}
+#endif
+}
+
 ISR(WDT_vect)
 {
 	for(slot = 0, pwm_slot = &pwm_meta[0]; slot < PWM_PORTS; slot++, pwm_slot++)
 	{
-		duty = pwm_timer1_get_pwm(slot);
+		duty = pwmmeta->duty;
 
 		switch(pwm_slot->pwm_mode)
 		{
@@ -78,8 +98,8 @@ ISR(WDT_vect)
 						pwm_slot->pwm_mode = pwm_mode_fade_in_out_cont;
 				}
 
-				pwm_slot->duty = duty;
-				pwm_timer1_set_pwm(slot, duty);
+					pwmmeta->saved_duty = 0x3ff;
+				}
 
 				break;
 			}
@@ -135,14 +155,15 @@ ISR(PCINT_vect)
 
 			duty = pwm_timer1_get_pwm(slot);
 
-			if(duty > 0)
+			if(pwmmeta->saved_duty > 0)	// off
 			{
-				pwm_meta[slot].duty = duty;
-				pwm_timer1_set_pwm(slot, 0);
+				duty = pwmmeta->duty = pwmmeta->saved_duty;
+				pwmmeta->saved_duty = 0;
 			}
 			else
 			{
-				pwm_timer1_set_pwm(slot, pwm_meta[slot].duty);
+				pwmmeta->saved_duty = pwmmeta->duty;
+				duty = pwmmeta->duty = 0;	// on
 			}
 		}
 
