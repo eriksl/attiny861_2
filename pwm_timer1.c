@@ -6,7 +6,7 @@
 
 static uint8_t cs1[4];
 
-void pwm_timer1_init(uint8_t prescaler)
+void pwm_timer1_init(uint8_t prescaler, uint8_t use_pll)
 {
 	uint8_t temp, mask;
 
@@ -97,6 +97,17 @@ void pwm_timer1_init(uint8_t prescaler)
 				(1 << TOV1)		|	// overflow flag timer1
 				(0 << TOV0)		|	// overflow flag timer0
 				(0 << ICF0);		// input capture flag timer0
+
+	if(use_pll)
+	{
+		PLLCSR |= _BV(LSM) | _BV(PLLE);
+
+		for(temp = 0; temp < 100; temp++)
+			while(!PLLCSR & _BV(PLOCK))
+				(void)0;
+
+		PLLCSR |= _BV(PCKE);
+	}
 }
 
 uint16_t pwm_timer1_get_counter(void)

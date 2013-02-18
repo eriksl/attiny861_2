@@ -26,7 +26,7 @@ enum
 	PWM_TIMER1_PRESCALER_16384	= 15
 };
 
-		void		pwm_timer1_init(uint8_t prescaler);
+		void		pwm_timer1_init(uint8_t prescaler, uint8_t use_pll);
 static	void		pwm_timer1_reset_counter(void);
 		uint16_t	pwm_timer1_get_counter(void);
 		void		pwm_timer1_set_max(uint16_t);
