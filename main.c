@@ -56,11 +56,11 @@ static void set_pwm(uint8_t slot, uint16_t duty)
 
 ISR(WDT_vect)
 {
-	for(slot = 0, pwm_slot = &pwm_meta[0]; slot < PWM_PORTS; slot++, pwm_slot++)
+	for(slot = 0, pwmmeta = &pwm_meta[0]; slot < (PWM_PORTS - 1); slot++, pwmmeta++)
 	{
 		duty = pwmmeta->duty;
 
-		switch(pwm_slot->pwm_mode)
+		switch(pwmmeta->pwm_mode)
 		{
 			case(pwm_mode_fade_in):
 			case(pwm_mode_fade_in_out_cont):
@@ -71,10 +71,10 @@ ISR(WDT_vect)
 				{
 					duty = 0x3ff;
 
-					if(pwm_slot->pwm_mode == pwm_mode_fade_in)
-						pwm_slot->pwm_mode = pwm_mode_fade_none;
+					if(pwmmeta->pwm_mode == pwm_mode_fade_in)
+						pwmmeta->pwm_mode = pwm_mode_fade_none;
 					else
-						pwm_slot->pwm_mode = pwm_mode_fade_out_in_cont;
+						pwmmeta->pwm_mode = pwm_mode_fade_out_in_cont;
 				}
 
 				pwm_slot->duty = duty;
@@ -92,11 +92,10 @@ ISR(WDT_vect)
 				{
 					duty = 0;
 
-					if(pwm_slot->pwm_mode == pwm_mode_fade_out)
-						pwm_slot->pwm_mode = pwm_mode_fade_none;
+					if(pwmmeta->pwm_mode == pwm_mode_fade_out)
+						pwmmeta->pwm_mode = pwm_mode_fade_none;
 					else
-						pwm_slot->pwm_mode = pwm_mode_fade_in_out_cont;
-				}
+						pwmmeta->pwm_mode = pwm_mode_fade_in_out_cont;
 
 					pwmmeta->saved_duty = 0x3ff;
 				}
@@ -125,9 +124,7 @@ ISR(PCINT_vect)
 
 	keys_down = new_keys_down;
 
-	ioport = &input_ports[0];
-
-	for(slot = 0;  slot < PWM_PORTS; slot++, ioport += 3)
+	for(slot = 0, ioport = &input_ports[0], pwmmeta = &pwm_meta[0]; slot < (PWM_PORTS - 1); slot++, ioport += 3, pwmmeta++)
 	{
 		if(!(*ioport[0].pin & _BV(ioport[0].bit)) && !(*ioport[1].pin & _BV(ioport[1].bit)))
 		{
@@ -149,9 +146,7 @@ ISR(PCINT_vect)
 
 		if(!(*ioport[0].pin & _BV(ioport[0].bit)))
 		{
-			pwm_meta[slot].pwm_mode = pwm_mode_fade_none;
-
-			duty = pwm_timer1_get_pwm(slot);
+			pwmmeta->pwm_mode = pwm_mode_fade_none;
 
 			if(pwmmeta->saved_duty > 0)	// off
 			{
