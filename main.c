@@ -131,21 +131,19 @@ ISR(PCINT_vect)
 	{
 		if(!(*ioport[0].pin & _BV(ioport[0].bit)) && !(*ioport[1].pin & _BV(ioport[1].bit)))
 		{
-			pwm_meta[slot].pwm_mode = pwm_mode_fade_out;
+			pwmmeta->pwm_mode = pwm_mode_fade_out;
 			continue;
 		}
 
 		if(!(*ioport[0].pin & _BV(ioport[0].bit)) && !(*ioport[2].pin & _BV(ioport[2].bit)))
 		{
-			pwm_meta[slot].duty		= 0;
-			pwm_timer1_set_pwm(slot, 0);
-			pwm_meta[slot].pwm_mode = pwm_mode_fade_in;
+			pwmmeta->pwm_mode = pwm_mode_fade_in;
 			continue;
 		}
 
 		if(!(*ioport[1].pin & _BV(ioport[1].bit)) && !(*ioport[2].pin & _BV(ioport[2].bit)))
 		{
-			pwm_meta[slot].pwm_mode = pwm_mode_fade_in_out_cont;
+			pwmmeta->pwm_mode = pwm_mode_fade_in_out_cont;
 			continue;
 		}
 
@@ -169,9 +167,9 @@ ISR(PCINT_vect)
 
 		if(!(*ioport[1].pin & _BV(ioport[1].bit)))
 		{
-			pwm_meta[slot].pwm_mode = pwm_mode_fade_none;
+			pwmmeta->pwm_mode = pwm_mode_fade_none;
 
-			duty = pwm_meta[slot].duty >> 1;
+			duty = pwmmeta->duty >> 1;
 
 			if(duty == 0)
 				duty = 1;
@@ -182,9 +180,9 @@ ISR(PCINT_vect)
 
 		if(!(*ioport[2].pin & _BV(ioport[2].bit)))
 		{
-			pwm_meta[slot].pwm_mode = pwm_mode_fade_none;
+			pwmmeta->pwm_mode = pwm_mode_fade_none;
 
-			duty = (pwm_meta[slot].duty << 1);
+			duty = pwmmeta->duty << 1;
 
 			if(duty == 0)
 				duty = 1;
@@ -217,9 +215,8 @@ int main(void)
 	PCMSK0	= 0;
 	PCMSK1	= 0;
 
-	for(slot = 0; slot < INPUT_PORTS; slot++)
+	for(slot = 0, ioport = &input_ports[0]; slot < INPUT_PORTS; slot++, ioport++)
 	{
-		ioport				= &input_ports[slot];
 		*ioport->port		&= ~_BV(ioport->bit);
 		*ioport->ddr		&= ~_BV(ioport->bit);
 		*ioport->port		|=  _BV(ioport->bit);
@@ -227,12 +224,18 @@ int main(void)
 		GIMSK				|=  _BV(ioport->gimskbit);
 	}
 
-	for(slot = 0; slot < PWM_PORTS; slot++)
+	for(slot = 0, pwmport = &pwm_ports[0]; slot < PWM_PORTS; slot++, pwmport++)
 	{
-		*pwm_ports[slot].ddr 		|= _BV(pwm_ports[slot].bit);
-		*pwm_ports[slot].port		&= ~_BV(pwm_ports[slot].bit);
-		pwm_meta[slot].pwm_mode		= pwm_mode_fade_none;
-		pwm_meta[slot].duty			= 0x3ff;
+		*pwmport->port		&= ~_BV(pwmport->bit);
+		*pwmport->ddr		|= _BV(pwmport->bit);
+	}
+
+	for(slot = 0, pwmmeta = &pwm_meta[0]; slot < PWM_PORTS; slot++, pwmmeta++)
+	{
+		pwmmeta->pwm_mode	= pwm_mode_fade_none;
+		pwmmeta->duty		= 0x000;
+		pwmmeta->saved_duty	= 0x3ff;
+		pwm_timer1_set_pwm(slot, 0);
 	}
 
 	// 1 mhz / 4 / 1024 = 244 Hz
