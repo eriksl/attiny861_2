@@ -40,7 +40,7 @@ enum
 	INPUT_PORTS				= 6,
 	OUTPUT_PORTS			= 0,
 	INTERNAL_OUTPUT_PORTS	= 0,
-	PWM_PORTS				= 2
+	PWM_PORTS				= 3
 };
 
 extern const adcport_t	adc_ports[];
