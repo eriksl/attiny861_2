@@ -28,9 +28,11 @@ typedef struct
 	pwm_mode_t	pwm_mode:8;
 } pwm_meta_t;
 
-static	const	ioport_t		*ioport;
-static			pwm_meta_t		pwm_meta[PWM_PORTS];
-static			pwm_meta_t		*pwm_slot;
+static	pwm_meta_t	pwm_meta[PWM_PORTS];
+
+static	const	ioport_t	*ioport;
+static	const	pwmport_t	*pwmport;
+static			pwm_meta_t	*pwmmeta;
 
 static	uint8_t		slot, keys_down;
 static	uint16_t	duty;
@@ -250,9 +252,7 @@ int main(void)
 	watchdog_start();
 
 	for(;;)
-	{
 		sleep_mode();
-	}
 
 	return(0);
 }
